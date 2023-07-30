@@ -1,7 +1,7 @@
 from tkinter import Tk, Button, Label, Frame, Entry
-from tkinter.ttk import Progressbar, Treeview
+from tkinter.ttk import Progressbar, Treeview, Scrollbar
 
-VERSION = "1.1"
+VERSION = "1.2.1"
 
 def trier(liste):
     ret = []
@@ -60,7 +60,7 @@ class Fen(Tk):
         super().__init__()
         self.title("Solveur de Boggle")
         
-        Label(self, text=f"Solveur de Boggle {VERSION}  ", font="Arial 10").pack()
+        Label(self, text=f"Solveur de Boggle {VERSION}  ", font="Arial 35").pack()
         
         self.plateau = []
         for l in range(4):
@@ -68,7 +68,7 @@ class Fen(Tk):
             frame = Frame(self)
             frame.pack()
             for c in range(4):
-                entre = Entry(frame, font="arial 15", width=2)
+                entre = Entry(frame, font="arial 30", width=2)
                 entre.bind("<KeyPress>", fonction(self.entree_modifiee, l, c))
                 entre.pack(side="left")
                 self.plateau[-1].append(entre)
@@ -78,32 +78,25 @@ class Fen(Tk):
         self.after(100, self.init)
     
     def init(self):
-        barre = Progressbar(self, length=800)
+        barre = Progressbar(self, length=600)
         barre.pack()
-        message = Label(self, text="--- ouverture du fichier ---")
-        message.pack()
         self.update()
-        f = open("mod.txt")
+        f = open("mod.txt", encoding="UTF-8")
         barre.step(2)
-        message.config(text="--- lecture du fichier ---")
         self.update()
         c = f.readlines()
         barre.step(5)
-        message.config(text="--- fermeture du fichier ---")
         self.update()
         f.close()
         barre.step(3)
-        message.config(text="--- découpage du fichier ---")
         self.update()
         MOTS, TYPE = list(zip(*(i.split(".") for i in c)))
         barre.step(15)
-        message.config(text="--- listage ---")
         self.update()
         MOTS = list(MOTS)
         TYPE = list(TYPE)
         BANNI = []
         barre.step(10)
-        message.config(text="--- suppression des accents du fichier ---")
         self.update()
         def supprime_accent(texte):
             accents = {'a': ['à', 'ã', 'á', 'â'],
@@ -117,16 +110,20 @@ class Fen(Tk):
             return texte
         
         d = []
+        ajout = len(MOTS)//55
+        obj = ajout
         for i in range(len(MOTS)):
             MOTS[i] = supprime_accent(MOTS[i]).lower().split(",")[0]
             if TYPE[i] in BANNI:
                 d.append(i)
+            if i > obj:
+                barre.step(1)
+                self.update()
+                obj += ajout
         dec = 0
         for i in d:
             del MOTS[i-dec]
             dec += 1
-        barre.step(55)
-        message.config(text="--- catégorisation ---")
         self.update()
         MOTS_C = {}
         for mot in MOTS:
@@ -140,8 +137,6 @@ class Fen(Tk):
                 except KeyError:
                     MOTS_C[mot[0:i]] = []
         barre.destroy()
-        message.config(text="--- finis ---")
-        self.after(1000, message.destroy)
         self.MOTS, self.MOTS_C, self.TYPE = MOTS, MOTS_C, TYPE
         self.bouton.config(state="normal")
     
@@ -164,7 +159,7 @@ class Fen(Tk):
 
     def valider(self):
         try:
-            self.tree.destroy()
+            self.fra.destroy()
         except AttributeError:
             pass
         self.bouton.config(state="disabled")
@@ -178,17 +173,25 @@ class Fen(Tk):
         resultats = list(reversed(chercher(self.MOTS_C, t, p, 100/16)))
         
         p.destroy()
+        self.update()
         
-        self.tree = Treeview(self, columns=("mot", "longueur", "type"))
-        self.tree.heading("#0", text="Classement")
-        self.tree.column("#0", width=150)
-        self.tree.heading("mot", text="Mot")
-        self.tree.heading("longueur", text="Longueur")
-        self.tree.column("longueur", width=100)
-        self.tree.heading("type", text="Type")
+        self.fra = Frame(self)
+        self.fra.pack()
+        tree = Treeview(self.fra, columns=("mot", "longueur", "type"), height=21)
+        tree.heading("#0", text="Classement")
+        tree.column("#0", width=150)
+        tree.heading("mot", text="Mot")
+        tree.heading("longueur", text="Longueur")
+        tree.column("longueur", width=100)
+        tree.heading("type", text="Type")
+        scroll = Scrollbar(self.fra, orient="vertical", command=tree.yview)
+        tree.config(yscrollcommand=scroll.set)
+        tree.pack(side="left")
+        scroll.pack(side="left", fill="y")
+        
         for resultat, compteur in zip(resultats, range(len(resultats))):
-            self.tree.insert("", "end", text=compteur, values=(resultat, len(resultat), self.TYPE[self.MOTS.index(resultat.lower())]))
-        self.tree.pack()
+            tree.insert("", "end", text=compteur, values=(resultat, len(resultat), self.TYPE[self.MOTS.index(resultat.lower())]))
+            self.update()
         
         self.bouton.config(state="normal")
 
