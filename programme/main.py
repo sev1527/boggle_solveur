@@ -1,7 +1,7 @@
 from tkinter import Tk, Button, Label, Frame, Entry
 from tkinter.ttk import Progressbar, Treeview, Scrollbar
 
-VERSION = "1.2.2"
+VERSION = "1.2.1"
 
 def trier(liste):
     ret = []
@@ -72,7 +72,7 @@ class Fen(Tk):
                 entre.bind("<KeyPress>", fonction(self.entree_modifiee, l, c))
                 entre.pack(side="left")
                 self.plateau[-1].append(entre)
-        self.bouton = Button(self, text="Voir les possibilités", command=self.valider, font="Arial 20", width=40, height=1, bg="light green", state="disabled")
+        self.bouton = Button(self, text="Voir les possibilités", command=self.valider, width=100, height=2, bg="light green", state="disabled")
         self.bouton.pack()
         
         self.after(100, self.init)
@@ -139,32 +139,16 @@ class Fen(Tk):
         barre.destroy()
         self.MOTS, self.MOTS_C, self.TYPE = MOTS, MOTS_C, TYPE
         self.bouton.config(state="normal")
-        
-    def entree_modifiee(self, l, c):
-        self.update()
-        self.after(10, fonction(self._entree_modifiee, l, c))
     
-    def _entree_modifiee(self, l, c):
-        if self.plateau[l][c].get():
-            val = self.plateau[l][c].get()
-            self.plateau[l][c].delete(0, "end")
-            self.plateau[l][c].insert(0, val[-1])
-            c += 1
-            if c==4:
-                c = 0
-                l += 1
-            if l!=4:
-                self.plateau[l][c].focus_set()
-            else:
-                self.bouton.flash()
-        else:
-            c -= 1
-            if c==-1:
-                c = 3
-                l -= 1
-            if l!=-1:
-                self.plateau[l][c].focus_set()
-        self.after(10, self.majuscules)
+    def entree_modifiee(self, l, c):
+        self.plateau[l][c].delete(0, "end")
+        c += 1
+        if c==4:
+            c = 0
+            l += 1
+        if l!=4:
+            self.plateau[l][c].focus_set()
+        self.after(100, self.majuscules)
 
     def majuscules(self):
         for l in self.plateau:
