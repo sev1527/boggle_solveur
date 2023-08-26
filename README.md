@@ -7,8 +7,9 @@ src="https://github.com/sev1527/boggle_solveur/blob/main/metadata/capture_recher
 
 <h2>Fonctionnalités</h2>
 <ul>
-  <li>Entrez une lettre, la case suivante est automatiquement sélectionnée.</li>
+  <li>Entrez une lettre, la case suivante est automatiquement sélectionnée. Appuyez sur <kbd>retour arrière</kbd> pour repasser à la case précédente.</li>
   <li>Les mots sont classés dans une liste par longueur.</li>
+  <li>Faites un clic droit dans la liste des mots pour des options supplémentaires.</li>
 <!--  <li>L'application recherche automatiquement les mises à jour et vous prévient quand elles sont disponibles</li>-->
 </ul>
 
@@ -20,6 +21,6 @@ src="https://github.com/sev1527/boggle_solveur/blob/main/metadata/capture_recher
 
 <h2>À venir (dans l'ordre d'apparition prévu)</h2>
 <ul>
-  <li>Appuyer sur retour arrière passe à la case précédente.</li>
   <li>Possibilité d'agrandir le plateau.</li>
+  <li>La définition directement dans le programme</li>
 </ul>
