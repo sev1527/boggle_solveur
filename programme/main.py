@@ -1,7 +1,31 @@
-from tkinter import Tk, Button, Label, Frame, Entry
+from tkinter import Tk, Button, Label, Frame, Entry, Menu
 from tkinter.ttk import Progressbar, Treeview, Scrollbar
+from copy import deepcopy
+import webbrowser
 
-VERSION = "1.2.2"
+VERSION = "1.3"
+
+TYPES = {
+    "A": "adjectif",
+    "ADV": "adverbe",
+    "INTJ": "interjection",
+    "N": "nom",
+    "V": "verbe",
+    "ms": "masculin singulier",
+    "mp": "masculin pluriel",
+    "fs": "féminin singulier",
+    "fp": "féminin pluriel",
+    "Kms": "participe passé masculin singulier",
+    "Kmp": "participe passé masculin pluriel",
+    "Kfs": "participe passé féminin singulier",
+    "Kfp": "participe passé féminin pluriel",
+    "G": "participe présent",
+    "W": "infinitif",
+}
+BANNI = ["PFX", "PFX+z1", "PFX+z2"]
+for temps in [["F", " du futur"], ["C", " du conditionnel"], ["I", " de l'imparfait"], ["J", " du passé simple"], ["P", " du présent"], ["S", " du subjonctif"], ["T", " de l'imparfait du subjonctif"], ["Y", " de l'impératif"]]:
+    for personne in [["1s", "1ère du s."], ["2s", "2ème du s."], ["3s", "3ème du s."], ["1p", "1ère du p."], ["2p", "2ème du p."], ["3p", "3ème du p."]]:
+        TYPES[temps[0]+personne[0]] = personne[1] + temps[1]
 
 def trier(liste):
     ret = []
@@ -60,7 +84,7 @@ class Fen(Tk):
         super().__init__()
         self.title("Solveur de Boggle")
         
-        Label(self, text=f"Solveur de Boggle {VERSION}  ", font="Arial 35").pack()
+        Label(self, text=f"Solveur de Boggle {VERSION}  ", font="Arial 25").pack()
         
         self.plateau = []
         for l in range(4):
@@ -72,7 +96,7 @@ class Fen(Tk):
                 entre.bind("<KeyPress>", fonction(self.entree_modifiee, l, c))
                 entre.pack(side="left")
                 self.plateau[-1].append(entre)
-        self.bouton = Button(self, text="Voir les possibilités", command=self.valider, font="Arial 20", width=40, height=1, bg="light green", state="disabled")
+        self.bouton = Button(self, text="Voir les possibilités", command=self.valider, font="Arial 20", width=30, height=1, bg="light green", state="disabled")
         self.bouton.pack()
         
         self.after(100, self.init)
@@ -94,8 +118,8 @@ class Fen(Tk):
         barre.step(15)
         self.update()
         MOTS = list(MOTS)
+        MOTS_O = deepcopy(MOTS)
         TYPE = list(TYPE)
-        BANNI = []
         barre.step(10)
         self.update()
         def supprime_accent(texte):
@@ -137,7 +161,7 @@ class Fen(Tk):
                 except KeyError:
                     MOTS_C[mot[0:i]] = []
         barre.destroy()
-        self.MOTS, self.MOTS_C, self.TYPE = MOTS, MOTS_C, TYPE
+        self.MOTS, self.MOTS_C, self.MOTS_O, self.TYPE = MOTS, MOTS_C, MOTS_O, TYPE
         self.bouton.config(state="normal")
         
     def entree_modifiee(self, l, c):
@@ -173,6 +197,33 @@ class Fen(Tk):
                 e.delete(0, "end")
                 e.insert(0, txt.upper())
 
+    def clic_droit(self, event):
+        self.tree.selection_set(self.tree.identify_row(event.y))
+        nb = self.tree.index(self.tree.selection()[0])
+        m = Menu(self, tearoff=0)
+        print(self.resultats[nb])
+        vrai_mot = self.MOTS_O[self.MOTS.index(self.resultats[nb].lower())].split(",")
+        m.add_command(label=vrai_mot[0], state="disabled")
+        if vrai_mot[1]:
+            m.add_command(label="->"+vrai_mot[1], state="disabled")
+        m.add_command(label="Rechercher sur internet", command=fonction(webbrowser.open, f"https://fr.wiktionary.org/wiki/{vrai_mot[0]}"))
+        m.add_separator()
+        types = self.TYPE[self.MOTS.index(self.resultats[nb].lower())].split(":")
+        mt = Menu(m, tearoff=0)
+        m.add_cascade(label="Type", menu=mt)
+        for t in types:
+            non = True
+            t2 = t.replace("\n", "").split("+")
+            for type_o in TYPES:
+                if type_o in t2:
+                    mt.add_command(label=TYPES[type_o], state="disabled")
+                    non = False
+                    break
+            if non:
+                mt.add_command(label=t, state="disabled")
+            print(t, t2)
+        m.tk_popup(event.x_root, event.y_root)
+    
     def valider(self):
         try:
             self.fra.destroy()
@@ -193,23 +244,24 @@ class Fen(Tk):
         
         self.fra = Frame(self)
         self.fra.pack()
-        tree = Treeview(self.fra, columns=("mot", "longueur", "type"), height=21)
-        tree.heading("#0", text="Classement")
-        tree.column("#0", width=150)
-        tree.heading("mot", text="Mot")
-        tree.heading("longueur", text="Longueur")
-        tree.column("longueur", width=100)
-        tree.heading("type", text="Type")
-        scroll = Scrollbar(self.fra, orient="vertical", command=tree.yview)
-        tree.config(yscrollcommand=scroll.set)
-        tree.pack(side="left")
+        self.tree = Treeview(self.fra, columns=("mot", "longueur"), height=21)
+        self.tree.heading("#0", text="Classement")
+        self.tree.column("#0", width=150)
+        self.tree.heading("mot", text="Mot")
+        self.tree.heading("longueur", text="Longueur")
+        self.tree.column("longueur", width=100)
+        scroll = Scrollbar(self.fra, orient="vertical", command=self.tree.yview)
+        self.tree.config(yscrollcommand=scroll.set)
+        self.tree.pack(side="left")
         scroll.pack(side="left", fill="y")
         
         for resultat, compteur in zip(resultats, range(len(resultats))):
-            tree.insert("", "end", text=compteur, values=(resultat, len(resultat), self.TYPE[self.MOTS.index(resultat.lower())]))
+            self.tree.insert("", "end", text=compteur, values=(resultat, len(resultat)))
             self.update()
         
+        self.resultats = resultats
         self.bouton.config(state="normal")
+        self.tree.bind("<Button-3>", self.clic_droit)
 
 if __name__ == "__main__":
     Fen().mainloop()
