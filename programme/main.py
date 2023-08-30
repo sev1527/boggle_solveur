@@ -3,7 +3,7 @@ from tkinter.ttk import Progressbar, Treeview, Scrollbar
 from copy import deepcopy
 import webbrowser
 
-VERSION = "1.3"
+VERSION = "1.3.1"
 
 TYPES = {
     "A": "adjectif",
@@ -102,7 +102,7 @@ class Fen(Tk):
         self.after(100, self.init)
     
     def init(self):
-        barre = Progressbar(self, length=600)
+        barre = Progressbar(self, length=500)
         barre.pack()
         self.update()
         f = open("mod.txt", encoding="UTF-8")
@@ -124,6 +124,7 @@ class Fen(Tk):
         self.update()
         def supprime_accent(texte):
             accents = {'a': ['à', 'ã', 'á', 'â'],
+                       'c': ['ç'],
                        'e': ['é', 'è', 'ê', 'ë'],
                        'i': ['î', 'ï'],
                        'u': ['ù', 'ü', 'û'],
@@ -203,10 +204,9 @@ class Fen(Tk):
         m = Menu(self, tearoff=0)
         print(self.resultats[nb])
         vrai_mot = self.MOTS_O[self.MOTS.index(self.resultats[nb].lower())].split(",")
-        m.add_command(label=vrai_mot[0], state="disabled")
+        m.add_command(label=vrai_mot[0], command=fonction(webbrowser.open, f"https://fr.wiktionary.org/wiki/{vrai_mot[0]}"))
         if vrai_mot[1]:
-            m.add_command(label="->"+vrai_mot[1], state="disabled")
-        m.add_command(label="Rechercher sur internet", command=fonction(webbrowser.open, f"https://fr.wiktionary.org/wiki/{vrai_mot[0]}"))
+            m.add_command(label="->"+vrai_mot[1], command=fonction(webbrowser.open, f"https://fr.wiktionary.org/wiki/{vrai_mot[1]}"))
         m.add_separator()
         types = self.TYPE[self.MOTS.index(self.resultats[nb].lower())].split(":")
         mt = Menu(m, tearoff=0)
