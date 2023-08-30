@@ -1,5 +1,5 @@
 <h1>boggle_solveur</h1>
-Une solveur de Boggle.
+Un résolveur de Boggle.
 
 <h2>Grâce à ce programme, trouvez tous les mots sur une grille de Boggle ⏱😉</h2>  
 <a href="https://github.com/sev1527/boggle_solveur/blob/main/metadata/capture_recherche.jpg?raw=true"><img width=400 alt="Capture d'écran de la page principale du programme."
@@ -22,5 +22,5 @@ src="https://github.com/sev1527/boggle_solveur/blob/main/metadata/capture_recher
 <h2>À venir (dans l'ordre d'apparition prévu)</h2>
 <ul>
   <li>Possibilité d'agrandir le plateau.</li>
-  <li>La définition directement dans le programme</li>
+  <li>La définition des mots directement dans le programme.</li>
 </ul>
