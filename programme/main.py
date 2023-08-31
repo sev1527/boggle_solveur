@@ -1,9 +1,11 @@
 from tkinter import Tk, Button, Label, Frame, Entry, Menu
 from tkinter.ttk import Progressbar, Treeview, Scrollbar
+from tkinter.messagebox import askyesno, showinfo, showwarning
 from copy import deepcopy
 import webbrowser
+from requests import get
 
-VERSION = "1.3.1"
+VERSION = "1.4"
 
 TYPES = {
     "A": "adjectif",
@@ -58,13 +60,15 @@ def _chercher(MOTS_C, mot, x, y, vus, carte):
             pass
     return res
 
-def chercher(MOTS_C, grille, barre, step):
+def chercher(MOTS_C, grille, barre, step, obj):
     res = []
     for l in range(len(grille)):
         for c in range(len(grille[l])):
             res += _chercher(MOTS_C, grille[l][c], l, c, [], grille)
             barre.step(step)
             barre.update()
+            if obj.annule:
+                return ["annulé"]
     return trier(list(set(res)))
 
 def fonction(fonct, *args, **kwargs):
@@ -84,7 +88,11 @@ class Fen(Tk):
         super().__init__()
         self.title("Solveur de Boggle")
         
-        Label(self, text=f"Solveur de Boggle {VERSION}  ", font="Arial 25").pack()
+        frame = Frame(self)
+        frame.pack()
+        Label(frame, text=f"Solveur de Boggle {VERSION}  ", font="Arial 25").pack(side="left")
+        bouton = Button(frame, text="🗘", command=self.mise_a_jour)
+        bouton.pack(side="left")
         
         self.plateau = []
         for l in range(4):
@@ -96,8 +104,9 @@ class Fen(Tk):
                 entre.bind("<KeyPress>", fonction(self.entree_modifiee, l, c))
                 entre.pack(side="left")
                 self.plateau[-1].append(entre)
-        self.bouton = Button(self, text="Voir les possibilités", command=self.valider, font="Arial 20", width=30, height=1, bg="light green", state="disabled")
+        self.bouton = Button(self, text="Voir les possibilités", command=self.valider, font="Arial 20", width=30, height=1, bg="light green")
         self.bouton.pack()
+        self.verrouiller()
         
         self.after(100, self.init)
     
@@ -163,6 +172,20 @@ class Fen(Tk):
                     MOTS_C[mot[0:i]] = []
         barre.destroy()
         self.MOTS, self.MOTS_C, self.MOTS_O, self.TYPE = MOTS, MOTS_C, MOTS_O, TYPE
+        
+        self.deverrouiller()
+        self.after(1000, fonction(self.mise_a_jour, False))
+    
+    def verrouiller(self):
+        for ligne in self.plateau:
+            for bouton in ligne:
+                bouton.config(state="disabled")
+        self.bouton.config(state="disabled")
+        
+    def deverrouiller(self):
+        for ligne in self.plateau:
+            for bouton in ligne:
+                bouton.config(state="normal")
         self.bouton.config(state="normal")
         
     def entree_modifiee(self, l, c):
@@ -224,22 +247,35 @@ class Fen(Tk):
             print(t, t2)
         m.tk_popup(event.x_root, event.y_root)
     
+    def annuler(self):
+        self.annule = True
+        self.deverrouiller()
+        self.bouton_annuler.destroy()
+    
     def valider(self):
         try:
             self.fra.destroy()
         except AttributeError:
             pass
-        self.bouton.config(state="disabled")
+        self.verrouiller()
+        
         p = Progressbar(self, length=400)
         p.pack()
+        
+        self.annule = False
+        self.bouton_annuler = Button(self, text="annuler", command=self.annuler, bg="red")
+        self.bouton_annuler.pack()
+        self.update()
+        
         t = []
         for l in self.plateau:
             t.append([])
             for c in l:
                 t[-1].append(c.get())
-        resultats = list(reversed(chercher(self.MOTS_C, t, p, 100/16)))
+        resultats = list(reversed(chercher(self.MOTS_C, t, p, 100/16, self)))
         
         p.destroy()
+        self.bouton_annuler.destroy()
         self.update()
         
         self.fra = Frame(self)
@@ -260,8 +296,36 @@ class Fen(Tk):
             self.update()
         
         self.resultats = resultats
-        self.bouton.config(state="normal")
+        self.deverrouiller()
         self.tree.bind("<Button-3>", self.clic_droit)
+
+    def mise_a_jour(self, manuel=True):
+        """
+        Bouton de demande de mise à jour pressé.
+        """
+        try:
+            requ = get("https://raw.githubusercontent.com/sev1527/boggle_solveur/main/request.json",
+                    timeout=3)
+            json = requ.json()
+            print(json)
+            n_l = "\n"
+            if VERSION < json["update"]["last"]:
+                if askyesno("Mise à jour",
+                            f"""La version {json["update"]["last"]} est disponible"""\
+                            f"""(vous avez {VERSION}).
+Nouveautés :
+{''.join(f'- {i}{n_l}' for i in json["update"]["new"])}
+
+Souhaitez-vous ouvrir le dépôt GitHub pour l'installer ?"""):
+                    webbrowser.open("https://github.com/sev1527/boggle_solveur")
+            elif manuel:
+                showinfo("Mise à jour", "Aucune mise à jour disponible.")
+        except ConnectionError:
+            if manuel:
+                showwarning("Échec", "Échec de la requête")
+        except TimeoutError:
+            if manuel:
+                showwarning("Échec", "Échec de la requête")
 
 if __name__ == "__main__":
     Fen().mainloop()
