@@ -137,6 +137,7 @@ class Fen(Tk):
         Button(frame, text="🗘", command=self.mise_a_jour).pack(side="left")
         Button(frame, text="🎲", command=self.melanger).pack(side="left")
         Button(frame, text="🔎", command=self.recherche).pack(side="left")
+        Button(frame, text="ⓘ", command=self.a_propos).pack(side="left")
         
         self.plateau = []
         for l in range(4):
