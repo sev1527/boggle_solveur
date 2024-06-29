@@ -1,11 +1,38 @@
+# -*- coding: utf-8 -*-
+"""
+Une fenêtre graphique pour résoudre les grille de Boggle.
+Créé par sev1527.
+https://github.com/sev1527/boggle_solveur
+"""
 from tkinter import Tk, Button, Label, Frame, Entry, Menu
 from tkinter.ttk import Progressbar, Treeview, Scrollbar
 from tkinter.messagebox import askyesno, showinfo, showwarning
+from tkinter.simpledialog import askstring
 from copy import deepcopy
 import webbrowser
 from requests import get
+from time import time
+from random import shuffle, randint
 
-VERSION = "1.4"
+VERSION = "1.5"
+
+DES = """SFEIHE
+FAIRXO
+EIRWUL
+KOTEUN
+CAMPDE
+TAIEOA
+QJMABO
+LGNUYE
+CASREL
+RISENH
+ENITGV
+SRIMAO
+RBTILA
+TONSED
+AVENDZ
+SUTPEL"""
+DES = DES.split("\n")
 
 TYPES = {
     "A": "adjectif",
@@ -42,10 +69,10 @@ def trier(liste):
             ret.append(i)
     return ret
 
-def _chercher(MOTS_C, mot, x, y, vus, carte):
+def _chercher(MOTS_C, mot, x, y, vus, carte, mx, my):
     prox = []
     for p in [[x, y-1], [x, y+1], [x-1, y], [x+1, y], [x-1, y-1], [x-1, y+1], [x+1, y-1], [x+1, y+1]]:
-        if p[0] in range(4) and p[1] in range(4) and not p in vus:
+        if p[0] in range(my) and p[1] in range(mx) and not p in vus:
             prox.append(p)
     if not prox:
         return []
@@ -54,19 +81,35 @@ def _chercher(MOTS_C, mot, x, y, vus, carte):
         try:
             nmot = mot + carte[p[0]][p[1]]
             if nmot.lower() in MOTS_C[nmot.lower()[0:5]]:
-                res += [nmot] + _chercher(MOTS_C, nmot, p[0], p[1], vus+[[x, y]], carte)
-            res += _chercher(MOTS_C, nmot, p[0], p[1], vus+[[x, y]], carte)
+                res += [nmot] + _chercher(MOTS_C, nmot, p[0], p[1], vus+[[x, y]], carte, mx, my)
+            res += _chercher(MOTS_C, nmot, p[0], p[1], vus+[[x, y]], carte, mx, my)
         except KeyError:
             pass
     return res
 
-def chercher(MOTS_C, grille, barre, step, obj):
+def _cherchera(MOTS_C, mot, x, y, vus, carte, mx, my, barre):
+    prox = []
+    for p in [[x, y-1], [x, y+1], [x-1, y], [x+1, y], [x-1, y-1], [x-1, y+1], [x+1, y-1], [x+1, y+1]]:
+        if p[0] in range(my) and p[1] in range(mx) and not p in vus:
+            prox.append(p)
+    if not prox:
+        return []
+    res = []
+    for p in prox:
+        try:
+            nmot = mot + carte[p[0]][p[1]]
+            res += _chercher(MOTS_C, nmot, p[0], p[1], vus+[[x, y]], carte, mx, my)
+        except KeyError:
+            pass
+        barre.step(1/len(prox)*1/(mx*my)*100)
+        barre.update()
+    return res
+
+def chercher(MOTS_C, grille, barre, obj):
     res = []
     for l in range(len(grille)):
         for c in range(len(grille[l])):
-            res += _chercher(MOTS_C, grille[l][c], l, c, [], grille)
-            barre.step(step)
-            barre.update()
+            res += _cherchera(MOTS_C, grille[l][c], l, c, [], grille, len(grille[0]), len(grille), barre)
             if obj.annule:
                 return ["annulé"]
     return trier(list(set(res)))
@@ -91,8 +134,9 @@ class Fen(Tk):
         frame = Frame(self)
         frame.pack()
         Label(frame, text=f"Solveur de Boggle {VERSION}  ", font="Arial 25").pack(side="left")
-        bouton = Button(frame, text="🗘", command=self.mise_a_jour)
-        bouton.pack(side="left")
+        Button(frame, text="🗘", command=self.mise_a_jour).pack(side="left")
+        Button(frame, text="🎲", command=self.melanger).pack(side="left")
+        Button(frame, text="🔎", command=self.recherche).pack(side="left")
         
         self.plateau = []
         for l in range(4):
@@ -107,6 +151,9 @@ class Fen(Tk):
         self.bouton = Button(self, text="Voir les possibilités", command=self.valider, font="Arial 20", width=30, height=1, bg="light green")
         self.bouton.pack()
         self.verrouiller()
+        
+        self.message = Label(self, text="Chargement en cours de la base de données...")
+        self.message.pack()
         
         self.after(100, self.init)
     
@@ -173,6 +220,7 @@ class Fen(Tk):
         barre.destroy()
         self.MOTS, self.MOTS_C, self.MOTS_O, self.TYPE = MOTS, MOTS_C, MOTS_O, TYPE
         
+        self.message.config(text="Chargement réussi !")
         self.deverrouiller()
         self.after(1000, fonction(self.mise_a_jour, False))
     
@@ -198,10 +246,10 @@ class Fen(Tk):
             self.plateau[l][c].delete(0, "end")
             self.plateau[l][c].insert(0, val[-1])
             c += 1
-            if c==4:
+            if c==len(self.plateau[l]):
                 c = 0
                 l += 1
-            if l!=4:
+            if l!=len(self.plateau):
                 self.plateau[l][c].focus_set()
             else:
                 self.bouton.flash()
@@ -259,6 +307,8 @@ class Fen(Tk):
             pass
         self.verrouiller()
         
+        self.message.config(text="Analyse de la grille en cours, merci de patienter...")
+        
         p = Progressbar(self, length=400)
         p.pack()
         
@@ -267,12 +317,17 @@ class Fen(Tk):
         self.bouton_annuler.pack()
         self.update()
         
+        tdepart = time()
         t = []
         for l in self.plateau:
             t.append([])
             for c in l:
                 t[-1].append(c.get())
-        resultats = list(reversed(chercher(self.MOTS_C, t, p, 100/16, self)))
+        resultats = list(reversed(chercher(self.MOTS_C, t, p, self)))
+        if resultats == ["annulé"]:
+            self.message.config(text="Recherche annulée")
+        else:
+            self.message.config(text=f"Exécuté en {round(time()-tdepart)} secondes")
         
         p.destroy()
         self.bouton_annuler.destroy()
@@ -291,13 +346,56 @@ class Fen(Tk):
         self.tree.pack(side="left")
         scroll.pack(side="left", fill="y")
         
-        for resultat, compteur in zip(resultats, range(len(resultats))):
+        self.resultats = [] #Réponses sans les doubles
+        base_u = [] #Liste des mots déjà trouvés
+        compteur = 0
+        for resultat in resultats:
+            vrai_mot = self.MOTS_O[self.MOTS.index(resultat.lower())].split(",") #Recherche du mot accentué
+            if vrai_mot[1]: #On regarde si il a une racine
+                if vrai_mot[1] in base_u: # et on vérifie qu'elle n'a pas encore été utilisée
+                    continue
+                base_u.append(vrai_mot[1])
+            else:
+                if vrai_mot[0] in base_u:
+                    continue
+                base_u.append(vrai_mot[0])
+            compteur += 1
+            self.resultats.append(resultat)
             self.tree.insert("", "end", text=compteur, values=(resultat, len(resultat)))
             self.update()
         
-        self.resultats = resultats
+        self.resultats_t = resultats #On crée une liste avec tous les résultats pour la recherche
         self.deverrouiller()
         self.tree.bind("<Button-3>", self.clic_droit)
+
+    def melanger(self):
+        liste = []
+        for de in DES:
+            liste.append(de[randint(0, 5)])
+        shuffle(liste)
+        i = 0
+        for x in range(4):
+            for y in range(4):
+                self.plateau[x][y].delete(0, "end")
+                self.plateau[x][y].insert(0, liste[i])
+                i += 1
+
+    def recherche(self):
+        try:
+            self.resultats_t
+            mot = askstring("Mot à rechercher", "Entrez le mot que vous souhaitez rechercher sans faute d'orthographe :")
+            if mot.upper() in self.resultats_t:
+                showinfo("Valide", "Le mot a été trouvé.")
+            else:
+                showwarning("Incorrect", "Le mot n'a pas été trouvé.")
+        except AttributeError:
+            showwarning("Avertissement", "Avant de rechercher un mot, entrez et validez une grille.")
+
+    def a_propos(self):
+        if askyesno("À propos",
+                    """Ce solveur de gille de Boggle a été créé par sev1527.
+Souhaitez-vous ouvrir le dépôt GitHub pour en apprendre plus ?"""):
+            webbrowser.open("https://github.com/sev1527/boggle_solveur")
 
     def mise_a_jour(self, manuel=True):
         """
@@ -305,7 +403,7 @@ class Fen(Tk):
         """
         try:
             requ = get("https://raw.githubusercontent.com/sev1527/boggle_solveur/main/request.json",
-                    timeout=3)
+                    timeout=(3 if manuel else 1))
             json = requ.json()
             print(json)
             n_l = "\n"
@@ -320,10 +418,7 @@ Souhaitez-vous ouvrir le dépôt GitHub pour l'installer ?"""):
                     webbrowser.open("https://github.com/sev1527/boggle_solveur")
             elif manuel:
                 showinfo("Mise à jour", "Aucune mise à jour disponible.")
-        except ConnectionError:
-            if manuel:
-                showwarning("Échec", "Échec de la requête")
-        except TimeoutError:
+        except ConnectionError or TimeoutError:
             if manuel:
                 showwarning("Échec", "Échec de la requête")
 
