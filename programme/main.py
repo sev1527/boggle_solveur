@@ -14,7 +14,7 @@ from requests import get
 from time import time
 from random import shuffle, randint
 
-VERSION = "1.5"
+VERSION = "1.5.1"
 
 DES = """SFEIHE
 FAIRXO
