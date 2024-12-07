@@ -1,11 +1,8 @@
 {
   "update": {
-    "last": "1.5",
+    "last": "1.5.1",
     "new": [
-      "Suppression des dérivés du même mot pour ne garder que le plus long",
-      "Possibilité de générer une grille aléatoirement",
-      "Possibilité de vérifier si un mot a été trouvé",
-      "Bug résolu quand la touche retour arrière était pressée au début d'une ligne"
+      "Les types de mots écartés du dictionnaire marchent vraiment"
     ]
   }
 }

@@ -14,7 +14,7 @@ from requests import get
 from time import time
 from random import shuffle, randint
 
-VERSION = "1.5"
+VERSION = "1.5.1"
 
 DES = """SFEIHE
 FAIRXO
@@ -177,6 +177,8 @@ class Fen(Tk):
         MOTS = list(MOTS)
         MOTS_O = deepcopy(MOTS)
         TYPE = list(TYPE)
+        for i in range(len(TYPE)):
+            TYPE[i] = TYPE[i].replace("\n", "")
         barre.step(10)
         self.update()
         def supprime_accent(texte):
@@ -205,6 +207,8 @@ class Fen(Tk):
         dec = 0
         for i in d:
             del MOTS[i-dec]
+            del MOTS_O[i-dec]
+            del TYPE[i-dec]
             dec += 1
         self.update()
         MOTS_C = {}
